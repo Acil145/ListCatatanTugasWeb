@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catatan Tugas</title>
+</head>
+<style>
+    table, tr, th, td {
+        border: 1px solid black;
+        border-collapse: collapse;
+        text-align: center;
+    }
+    th {
+        background-color: lightyellow;
+    }
+    button {
+        cursor: pointer;
+    }
+    .container {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .container button, input {
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+</style>
+<body>
+    <h1 style="text-align: center;">NOTE LIST TUGAS</h1>
+    <div class="container">
+        <label id="textInput">Mata Pelajaran</label>
+        <input type="text" id="inputMu" onkeypress="cekEnter(event)">
+        <button onclick="start()">submit</button>
+    </div>
+    <table style="width: 100%;" id="TabelList">
+        <tr>
+            <th style="width: 10%;">Mata Pelajaran</th>
+            <th style="width: 60%;">Detail</th>
+            <th style="width: 10%;">Tgl Dapat</th>
+            <th style="width: 10%;">Tgl Deadline</th>
+            <th style="width: 5%;">Sisa Hari</th>
+            <th style="width: 5%;">Selesai</th>
+        </tr>
+    </table>
+</body>
+<script>
+let tempData = [];
+let localData = JSON.parse(localStorage.getItem("IsiTabelLocal")) || [];
+const teksUntukLabel = ["Mata Pelajaran", "Detail", "Tanggal Deadline (Hari-Bulan)"];
+let labelIndex = 0;
+let remainingDays;
+let get;
+
+const cekTabel = document.getElementById("TabelList");
+const cekInput = document.getElementById("inputMu");
+const cekLabel = document.getElementById("textInput");
+
+let hariTerakhir;
+let tgl = new Date();
+let hari = tgl.getDate();
+let bulan = tgl.getMonth() + 1;
+let tahun = tgl.getFullYear();
+let tanggalSekarang = `${hari}-${bulan}`;
+
+//load localstorage saat refresh
+function loadLocal() {
+    localData.forEach(item => {
+        countRemainingDay(item.TanggalDead);
+        isiTabel(item.Pelajaran, item.Detail, item.TanggalDpt, item.TanggalDead, remainingDays);
+    })
+}
+
+loadLocal();
+
+
+function start() {
+    let isiInput = cekInput.value.trim(); //hapus spasi berlebih
+    
+    if (isiInput === "") {return};
+
+    tempData.push(isiInput); //tambah ke data
+    cekInput.value = ""; //kosongkan input setelah masukkan data
+    
+    if (tempData.length === 3) {
+        countRemainingDay(tempData[2]);
+        if (remainingDays < 0) {
+            window.alert("invalid date");
+            tempData.pop();
+            return;
+        }
+
+        isiTabel(tempData[0], tempData[1], tanggalSekarang ,tempData[2], remainingDays);
+
+        //simpan ke local storage
+        localData.push({Pelajaran: tempData[0],
+                        Detail: tempData[1],
+                        TanggalDpt: tanggalSekarang,
+                        TanggalDead: tempData[2],
+                        });
+        console.log(localData);
+        localStorage.setItem("IsiTabelLocal", JSON.stringify(localData));
+
+        labelIndex = 0;
+        tempData = [];
+        cekLabel.textContent = teksUntukLabel[labelIndex];
+    } else { 
+        labelIndex = labelIndex + 1;
+        labelIndex >= 3 ? labelIndex = 0 : labelIndex = labelIndex;
+    }
+
+    cekLabel.textContent = teksUntukLabel[labelIndex];
+
+}
+
+function countRemainingDay(DeadlineString) {
+    let pantas;
+    let [teksHariDeadline, teksBulanDeadline] = DeadlineString.split("-");
+    teksHariDeadline = Number(teksHariDeadline);
+    teksBulanDeadline = Number(teksBulanDeadline);
+    let teksHariSekarang = hari;
+    let teksBulanSekarang = bulan;
+
+    //hitung sisa hari
+    pantas = DeadlineString.includes('-');
+    selisih = teksBulanDeadline - teksBulanSekarang;
+
+    if  (teksBulanDeadline < teksBulanSekarang || 
+         (teksBulanDeadline === teksBulanSekarang && teksHariDeadline < teksHariSekarang) ||
+         !pantas ||
+         teksHariDeadline > 31 ||
+         teksBulanDeadline > 12 ||
+         teksHariDeadline < 1 ||
+         teksBulanDeadline < 1) {
+            remainingDays = -1;
+            return;
+    }
+
+    switch(true) {
+        case selisih == 0:
+            remainingDays = teksHariDeadline - teksHariSekarang; 
+            break;
+        case selisih >= 2:
+            hariTerakhir = getDaysInMonth(teksBulanSekarang, tahun);
+            remainingDays = hariTerakhir - teksHariSekarang;
+            teksBulanSekarang = teksBulanSekarang + 1;
+            selisih = selisih - 1;
+            while (selisih > 0) {
+                hariTerakhir = getDaysInMonth(teksBulanSekarang, tahun);
+                remainingDays = remainingDays + hariTerakhir;
+                teksBulanSekarang = teksBulanSekarang + 1;
+                selisih = selisih - 1;
+                }
+            remainingDays = remainingDays + teksHariDeadline;
+            break;
+        default:
+            hariTerakhir = getDaysInMonth(teksBulanSekarang, tahun);
+            remainingDays = (hariTerakhir - teksHariSekarang) + teksHariDeadline;
+            break;
+        }
+}
+
+function isiTabel(Nama, Detail, TglDapat, TglDeadline, SisaHari) {
+    let newRow = cekTabel.insertRow(cekTabel.rows.length);
+    newRow.insertCell(0).innerText = Nama;
+    newRow.insertCell(1).innerText = Detail;
+    newRow.insertCell(2).innerText = TglDapat;
+    newRow.insertCell(3).innerText = TglDeadline;
+    newRow.insertCell(4).innerText = SisaHari;
+
+    //ceklis untuk hapus
+    let ceklis = document.createElement("input");
+    ceklis.type = "checkbox";
+    let ceklisCell = newRow.insertCell(5);
+
+    //ambil dari chatgpt karena belum tau caranya :v
+    ceklis.addEventListener("change", function () {
+        if (this.checked) {
+            if(confirm("yakin hapus?")) {
+                localData = JSON.parse(localStorage.getItem("IsiTabelLocal")) || [];
+                let stored = localData.filter(data => {
+                    return !(data.Pelajaran === Nama &&
+                         data.Detail === Detail &&
+                         data.TanggalDpt === TglDapat &&
+                         data.TanggalDead === TglDeadline);
+                })
+                localStorage.setItem("IsiTabelLocal", JSON.stringify(stored));
+
+                cekTabel.deleteRow(newRow.rowIndex);
+            } else {
+                this.checked = false;
+            }
+        }
+    });
+    ceklisCell.appendChild(ceklis);
+}
+
+//ini ambil dari internet :v
+function getDaysInMonth(m, y) {
+    return m===2 ? y & 3 || !(y%25) && y & 15 ? 28 : 29 : 30 + (m+(m>>3)&1);
+    }
+
+
+function cekEnter(event) {
+    if (event.key === "Enter") {
+        start();            
+        }
+    }
+</script>
+</html>
