@@ -14,9 +14,6 @@
     th {
         background-color: lightyellow;
     }
-    button {
-        cursor: pointer;
-    }
     .container {
         text-align: center;
         display: flex;
@@ -24,9 +21,13 @@
         align-items: center;
         justify-content: center;
     }
-    .container button, input {
+    .container button {
+        padding: 8px;
         margin-top: 10px;
         margin-bottom: 10px;
+    }
+    .container input {
+        margin-top: 10px;
     }
 </style>
 <body>
@@ -38,12 +39,12 @@
     </div>
     <table style="width: 100%;" id="TabelList">
         <tr>
-            <th style="width: 10%;">Mata Pelajaran</th>
-            <th style="width: 60%;">Detail</th>
-            <th style="width: 10%;">Tgl Dapat</th>
-            <th style="width: 10%;">Tgl Deadline</th>
-            <th style="width: 5%;">Sisa Hari</th>
-            <th style="width: 5%;">Selesai</th>
+            <th style="width: 17%;">Mapel</th>
+            <th style="width: 38%;">Detail</th>
+            <th style="width: 14%;">Tgl Dapat</th>
+            <th style="width: 13%;">Tgl Deadline</th>
+            <th style="width: 10%;">Sisa Hari</th>
+            <th style="width: 10%;">✓</th>
         </tr>
     </table>
 </body>
@@ -70,6 +71,7 @@ let tanggalSekarang = `${hari}-${bulan}`;
 function loadLocal() {
     localData.forEach(item => {
         countRemainingDay(item.TanggalDead);
+        if (remainingDays == -1) {remainingDays = "Lewat"}
         isiTabel(item.Pelajaran, item.Detail, item.TanggalDpt, item.TanggalDead, remainingDays);
     })
 }
@@ -81,6 +83,8 @@ function start() {
     let isiInput = cekInput.value.trim(); //hapus spasi berlebih
     
     if (isiInput === "") {return};
+
+    if (isiInput === "HAPUS SEMUA") {hapusData()};
 
     tempData.push(isiInput); //tambah ke data
     cekInput.value = ""; //kosongkan input setelah masukkan data
@@ -209,5 +213,12 @@ function cekEnter(event) {
         start();            
         }
     }
+
+function hapusData() {
+            if(confirm("Yakin hapus semua data?")) {
+                localStorage.removeItem("IsiTabelLocal");
+                window.alert("silakan refresh untuk liat perubahannya :D")
+            }
+        }
 </script>
 </html>
